@@ -19,6 +19,22 @@ std::string socket_path(int id) {
   return oss.str();
 }
 
+bool send_all(int fd, const void *data, size_t len) {
+  const char *ptr = static_cast<const char *>(data);
+  while (len > 0) {
+    ssize_t w = ::send(fd, ptr, len, 0);
+    if (w < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return false;
+    }
+    ptr += w;
+    len -= w;
+  }
+  return true;
+}
+
 class ConnSock : public IConn {
 public:
   ConnSock(int id, bool is_host) : id_(id), owner_(is_host) {
@@ -55,8 +71,7 @@ public:
     if (!ensure_connected()) {
       return false;
     }
-    ssize_t w = ::send(fd_, &msg, sizeof(ChatMessage), 0);
-    if (w != static_cast<ssize_t>(sizeof(ChatMessage))) {
+    if (!send_all(fd_, &msg, sizeof(ChatMessage))) {
       std::ostringstream oss;
       oss << "socket send failed: " << strerror(errno);
       log_line("SOCK", oss.str());
