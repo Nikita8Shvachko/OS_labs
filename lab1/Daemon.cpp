@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <syslog.h>
@@ -55,8 +56,13 @@ void Daemon::loadConfig() {
           folder1 = value;
         else if (key == "folder2")
           folder2 = value;
-        else if (key == "interval")
-          interval = std::stoi(value);
+        else if (key == "interval") {
+          try {
+            interval = std::stoi(value);
+          } catch (const std::exception &e) {
+            syslog(LOG_ERR, "Invalid interval value in config: %s", value.c_str());
+          }
+        }
       }
     }
   }
