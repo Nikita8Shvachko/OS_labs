@@ -91,7 +91,9 @@ void drop_client(int id) {
   }
   if (ctx) {
     ctx->active.store(false);
-    if (ctx->reader.joinable()) {
+    if (ctx->reader.get_id() == std::this_thread::get_id()) {
+      ctx->reader.detach();
+    } else if (ctx->reader.joinable()) {
       ctx->reader.join();
     }
     log_line("HOST", "client " + std::to_string(id) + " disconnected");
@@ -106,12 +108,14 @@ void reader_loop(std::shared_ptr<ClientCtx> ctx) {
       continue;
     }
     if (res == ReadResult::Error) {
+      drop_client(ctx->id);
       break;
     }
 
     if (msg.type == MsgType::DISCONNECT) {
       log_line("HOST",
                "Client " + std::to_string(ctx->id) + " sent disconnect.");
+      drop_client(ctx->id);
       break;
     }
 
@@ -125,7 +129,7 @@ void reader_loop(std::shared_ptr<ClientCtx> ctx) {
     }
     send_message(msg);
   }
-  ctx->active.store(false);
+  drop_client(ctx->id);
 }
 
 void input_loop() {
