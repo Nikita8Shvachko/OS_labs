@@ -1,0 +1,4 @@
+folder1=/tmp/lab1_folder1
+folder2=/tmp/lab1_folder2
+interval=30
+
